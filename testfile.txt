@@ -1,0 +1,1 @@
+Test commit – verifying Git connection
