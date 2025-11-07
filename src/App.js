@@ -1,5 +1,5 @@
 import './App.css';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StrudelMirror } from '@strudel/codemirror';
 import { evalScope } from '@strudel/core';
 import { drawPianoroll } from '@strudel/draw';
@@ -18,15 +18,13 @@ import { preprocess } from './lib/preprocess';
 let globalEditor = null;
 
 export default function StrudelDemo() {
-  // ---- State and Refs ----
   const hasRun = useRef(false);
+
   const [template, setTemplate] = useState(stranger_tune);
+  // processed only changes when user clicks Preprocess / Proc & Play
+  const [processed, setProcessed] = useState(stranger_tune);
   const [p1Hush, setP1Hush] = useState(false);
 
-  // ---- Processed Output ----
-  const processed = useMemo(() => preprocess(template, { p1Hush }), [template, p1Hush]);
-
-  // ---- Strudel Initialisation ----
   useEffect(() => {
     if (hasRun.current) return;
     console_monkey_patch();
@@ -62,16 +60,16 @@ export default function StrudelDemo() {
         await Promise.all([loadModules, registerSynthSounds(), registerSoundfonts()]);
       },
     });
-  }, []);
 
-  // ---- Sync processed text to REPL ----
-  useEffect(() => {
-    if (globalEditor) globalEditor.setCode(processed);
-  }, [processed]);
+    if (globalEditor) {
+      globalEditor.setCode(processed);
+    }
+  }, []); // run once
 
-  // ---- Handlers ----
   const handlePreprocess = () => {
-    if (globalEditor) globalEditor.setCode(processed);
+    const next = preprocess(template, { p1Hush });
+    setProcessed(next);                 
+    if (globalEditor) globalEditor.setCode(next);  // push to REPL
   };
 
   const handleProcPlay = () => {
@@ -80,14 +78,13 @@ export default function StrudelDemo() {
   };
 
   const handlePlay = () => {
-    if (globalEditor) globalEditor.evaluate();
+    if (globalEditor) globalEditor.evaluate(); // play whatever is currently in REPL
   };
 
   const handleStop = () => {
     if (globalEditor) globalEditor.stop();
   };
 
-  // ---- Render ----
   return (
     <div className="container-fluid py-3">
       <h2 className="mb-3 text-center">Strudel Demo</h2>
@@ -100,7 +97,7 @@ export default function StrudelDemo() {
       />
 
       <div className="row g-4">
-      <div className="col-md-8 d-flex flex-column" style={{ height: '85vh' }}>
+        <div className="col-md-8 d-flex flex-column" style={{ height: '85vh' }}>
           <EditorPanel template={template} onChange={setTemplate} />
           <ReplOutput processed={processed} />
         </div>
@@ -110,7 +107,7 @@ export default function StrudelDemo() {
         </div>
       </div>
 
-      <canvas id="roll" className="mt-3" />
+      <canvas id="roll" className="mt-3 mb-5" />
     </div>
   );
 }
