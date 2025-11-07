@@ -1,7 +1,8 @@
 // preprocess.js – pure text preprocessor
+// src/lib/preprocess.js
 export function preprocess(template, state) {
-    let out = template;
-    out = out.replaceAll('<p1_Radio>', state.p1Hush ? '_' : '');
-    return out;
-  }
-  
+  const SILENCE = "~";       
+  const replacement = state.p1Hush ? SILENCE : "";
+  return template.replaceAll("<p1_Radio>", replacement);
+}
+

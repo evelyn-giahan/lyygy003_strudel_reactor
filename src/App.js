@@ -1,48 +1,53 @@
-import './App.css';
-import { useEffect, useRef, useState } from 'react';
-import { StrudelMirror } from '@strudel/codemirror';
-import { evalScope } from '@strudel/core';
-import { drawPianoroll } from '@strudel/draw';
-import { initAudioOnFirstClick, getAudioContext, webaudioOutput, registerSynthSounds } from '@strudel/webaudio';
-import { transpiler } from '@strudel/transpiler';
-import { registerSoundfonts } from '@strudel/soundfonts';
-import { stranger_tune } from './tunes';
-import console_monkey_patch from './console-monkey-patch';
+// src/App.js
+import "./App.css";
+import { useEffect, useRef, useState } from "react";
+import { StrudelMirror } from "@strudel/codemirror";
+import { evalScope } from "@strudel/core";
+import { drawPianoroll } from "@strudel/draw";
+import { initAudioOnFirstClick, getAudioContext, webaudioOutput, registerSynthSounds } from "@strudel/webaudio";
+import { transpiler } from "@strudel/transpiler";
+import { registerSoundfonts } from "@strudel/soundfonts";
+import { stranger_tune } from "./tunes";
+import console_monkey_patch from "./console-monkey-patch";
 
-import HeaderBar from './components/HeaderBar';
-import EditorPanel from './components/EditorPanel';
-import ReplOutput from './components/ReplOutput';
-import ControlPanel from './components/ControlPanel';
-import { preprocess } from './lib/preprocess';
+import HeaderBar from "./components/HeaderBar";
+import EditorPanel from "./components/EditorPanel";
+import ReplOutput from "./components/ReplOutput";
+import ControlPanel from "./components/ControlPanel";
+import { preprocess } from "./lib/preprocess";
 
 let globalEditor = null;
 
 export default function StrudelDemo() {
   const hasRun = useRef(false);
 
-  const [template, setTemplate] = useState(stranger_tune);
-  // processed only changes when user clicks Preprocess / Proc & Play
+  // App state (single source of truth)
+  const [template, setTemplate]   = useState(stranger_tune);
   const [processed, setProcessed] = useState(stranger_tune);
-  const [p1Hush, setP1Hush] = useState(false);
+  const [p1Hush, setP1Hush]       = useState(false);
 
   useEffect(() => {
     if (hasRun.current) return;
-    console_monkey_patch();
     hasRun.current = true;
 
-    const canvas = document.getElementById('roll');
+    // (optional) debug hook your spec used
+    console_monkey_patch();
+
+    // Canvas for piano roll
+    const canvas = document.getElementById("roll");
+    const drawContext = canvas?.getContext("2d") ?? null;
     if (canvas) {
-      canvas.width = canvas.width * 2;
+      canvas.width  = canvas.width * 2;
       canvas.height = canvas.height * 2;
     }
-    const drawContext = canvas ? canvas.getContext('2d') : null;
     const drawTime = [-2, 2];
 
+    // Boot the Strudel REPL
     globalEditor = new StrudelMirror({
       defaultOutput: webaudioOutput,
       getTime: () => getAudioContext().currentTime,
       transpiler,
-      root: document.getElementById('editor'),
+      root: document.getElementById("editor"),
       drawTime,
       onDraw: (haps, time) => {
         if (!drawContext) return;
@@ -51,25 +56,25 @@ export default function StrudelDemo() {
       prebake: async () => {
         initAudioOnFirstClick();
         const loadModules = evalScope(
-          import('@strudel/core'),
-          import('@strudel/draw'),
-          import('@strudel/mini'),
-          import('@strudel/tonal'),
-          import('@strudel/webaudio'),
+          import("@strudel/core"),
+          import("@strudel/draw"),
+          import("@strudel/mini"),
+          import("@strudel/tonal"),
+          import("@strudel/webaudio"),
         );
         await Promise.all([loadModules, registerSynthSounds(), registerSoundfonts()]);
       },
     });
 
-    if (globalEditor) {
-      globalEditor.setCode(processed);
-    }
-  }, []); // run once
+    // Seed the REPL with initial code
+    if (globalEditor) globalEditor.setCode(processed);
+  }, [processed]);
 
+  // === Button handlers ===
   const handlePreprocess = () => {
     const next = preprocess(template, { p1Hush });
-    setProcessed(next);                 
-    if (globalEditor) globalEditor.setCode(next);  // push to REPL
+    setProcessed(next);
+    if (globalEditor) globalEditor.setCode(next);
   };
 
   const handleProcPlay = () => {
@@ -78,7 +83,7 @@ export default function StrudelDemo() {
   };
 
   const handlePlay = () => {
-    if (globalEditor) globalEditor.evaluate(); // play whatever is currently in REPL
+    if (globalEditor) globalEditor.evaluate();
   };
 
   const handleStop = () => {
@@ -97,7 +102,7 @@ export default function StrudelDemo() {
       />
 
       <div className="row g-4">
-        <div className="col-md-8 d-flex flex-column" style={{ height: '85vh' }}>
+        <div className="col-md-8 d-flex flex-column" style={{ height: "85vh" }}>
           <EditorPanel template={template} onChange={setTemplate} />
           <ReplOutput processed={processed} />
         </div>
