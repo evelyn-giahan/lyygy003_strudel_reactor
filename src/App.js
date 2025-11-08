@@ -1,4 +1,3 @@
-// src/App.js
 import "./App.css";
 import { useEffect, useRef, useState } from "react";
 import { StrudelMirror } from "@strudel/codemirror";
@@ -14,6 +13,7 @@ import HeaderBar from "./components/HeaderBar";
 import EditorPanel from "./components/EditorPanel";
 import ReplOutput from "./components/ReplOutput";
 import ControlPanel from "./components/ControlPanel";
+import AudioControls from "./components/AudioControls";
 import { preprocess } from "./lib/preprocess";
 
 let globalEditor = null;
@@ -21,19 +21,20 @@ let globalEditor = null;
 export default function StrudelDemo() {
   const hasRun = useRef(false);
 
-  // App state (single source of truth)
   const [template, setTemplate]   = useState(stranger_tune);
   const [processed, setProcessed] = useState(stranger_tune);
   const [p1Hush, setP1Hush]       = useState(false);
 
+  const [tempo, setTempo]   = useState(140); // BPM
+  const [volume, setVolume] = useState(1.0); // 1.0 = normal loudness
+
+  // ---- Boot Strudel REPL once ----
   useEffect(() => {
     if (hasRun.current) return;
     hasRun.current = true;
 
-    // (optional) debug hook your spec used
     console_monkey_patch();
 
-    // Canvas for piano roll
     const canvas = document.getElementById("roll");
     const drawContext = canvas?.getContext("2d") ?? null;
     if (canvas) {
@@ -42,7 +43,6 @@ export default function StrudelDemo() {
     }
     const drawTime = [-2, 2];
 
-    // Boot the Strudel REPL
     globalEditor = new StrudelMirror({
       defaultOutput: webaudioOutput,
       getTime: () => getAudioContext().currentTime,
@@ -66,13 +66,12 @@ export default function StrudelDemo() {
       },
     });
 
-    // Seed the REPL with initial code
     if (globalEditor) globalEditor.setCode(processed);
   }, [processed]);
 
-  // === Button handlers ===
+  // ---- Manual handlers ----
   const handlePreprocess = () => {
-    const next = preprocess(template, { p1Hush });
+    const next = preprocess(template, { p1Hush, tempo, volume });
     setProcessed(next);
     if (globalEditor) globalEditor.setCode(next);
   };
@@ -102,13 +101,21 @@ export default function StrudelDemo() {
       />
 
       <div className="row g-4">
+        {/* Left column: editor + processed preview */}
         <div className="col-md-8 d-flex flex-column" style={{ height: "85vh" }}>
           <EditorPanel template={template} onChange={setTemplate} />
           <ReplOutput processed={processed} />
         </div>
 
+        {/* Right column: radios + sliders */}
         <div className="col-md-4">
           <ControlPanel p1Hush={p1Hush} onChangeP1={setP1Hush} />
+          <AudioControls
+            tempo={tempo}
+            onTempo={setTempo}
+            volume={volume}
+            onVolume={setVolume}
+          />
         </div>
       </div>
 
