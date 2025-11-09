@@ -5,7 +5,12 @@ import * as d3 from "d3";
 
 import { StrudelMirror } from "@strudel/codemirror";
 import { evalScope } from "@strudel/core";
-import { initAudioOnFirstClick, getAudioContext, webaudioOutput, registerSynthSounds } from "@strudel/webaudio";
+import {
+  initAudioOnFirstClick,
+  getAudioContext,
+  webaudioOutput,
+  registerSynthSounds,
+} from "@strudel/webaudio";
 import { transpiler } from "@strudel/transpiler";
 import { registerSoundfonts } from "@strudel/soundfonts";
 
@@ -25,11 +30,11 @@ export default function StrudelDemo() {
   const hasRun = useRef(false);
 
   // ---- App state (single source of truth) ----
-  const [template, setTemplate]   = useState(stranger_tune);
+  const [template, setTemplate] = useState(stranger_tune);
   const [processed, setProcessed] = useState(stranger_tune);
-  const [p1Hush, setP1Hush]       = useState(false);
+  const [p1Hush, setP1Hush] = useState(false);
 
-  const [tempo, setTempo]   = useState(140); // BPM
+  const [tempo, setTempo] = useState(140); // BPM
   const [volume, setVolume] = useState(1.0); // 1.0 = normal loudness
 
   // ---- Boot Strudel REPL once ----
@@ -50,70 +55,80 @@ export default function StrudelDemo() {
 
       // D3-based pastel bar visualiser representing Strudel playback
       onDraw: (haps, time) => {
-  const svg = d3.select("#visualiser");
-  if (svg.empty()) return;
+        const svg = d3.select("#visualiser");
+        if (svg.empty()) return;
 
-  const width  = parseFloat(svg.style("width")) || 600;
-  const height = parseFloat(svg.attr("height")) || 220;
+        const node = svg.node();
+        const rect = node.getBoundingClientRect();
+        const width = rect.width || 600;
+        const height = parseFloat(svg.attr("height")) || 220;
 
-  // Use the actual haps array; if empty, just clear bars
-  const data = haps && haps.length > 0 ? haps : [];
+        const data = haps && haps.length > 0 ? haps : [];
 
-  // If no events, remove all bars and playhead and bail out
-  if (data.length === 0) {
-    svg.selectAll("rect.bar").remove();
-    svg.selectAll("line.playhead").remove();
-    return;
-  }
+        // If no events, clear and bail
+        if (data.length === 0) {
+          svg.selectAll("rect.bar").remove();
+          svg.selectAll("line.playhead").remove();
+          return;
+        }
 
-  const barWidth = width / data.length;
+        const barWidth = width / data.length;
 
-  // Pastel rainbow colour scale
-  const colorScale = d3.scaleSequential()
-    .domain([0, data.length - 1])
-    .interpolator((t) => d3.hsl(t * 360, 0.6, 0.75).formatHex());
+        // Pastel rainbow colour scale
+        const colorScale = d3
+          .scaleSequential()
+          .domain([0, data.length - 1])
+          .interpolator((t) => d3.hsl(t * 360, 0.6, 0.75).formatHex());
 
-  // ==== BARS ====
-  const bars = svg.selectAll("rect.bar").data(data);
+        // Height based on time + index so it moves smoothly but doesn't "stack"
+        const bars = svg.selectAll("rect.bar").data(data, (_d, i) => i);
 
-  bars
-    .join(
-      enter => enter.append("rect").attr("class", "bar"),
-      update => update,
-      exit => exit.remove()
-    )
-    .attr("x", (_d, i) => i * barWidth)
-    .attr("width", Math.max(barWidth - 2, 1))   // small gap between bars
-    .attr("fill", (_d, i) => colorScale(i))
-    .attr("y", () => {
-      // choose a height between 30% and 70% of the svg
-      const hNorm = 0.3 + 0.4 * Math.random();
-      return height * (1 - hNorm);
-    })
-    .attr("height", () => {
-      const hNorm = 0.3 + 0.4 * Math.random();
-      return height * hNorm;
-    });
+        bars
+          .join(
+            (enter) =>
+              enter
+                .append("rect")
+                .attr("class", "bar")
+                .attr("y", height)
+                .attr("height", 0),
+            (update) => update,
+            (exit) => exit.remove()
+          )
+          .attr("x", (_d, i) => i * barWidth)
+          .attr("width", Math.max(barWidth - 3, 1)) // small gap
+          .attr("fill", (_d, i) => colorScale(i))
+          .attr("y", (_d, i) => {
+            const amp = Math.abs(Math.sin(time + i)); // 0..1
+            const hNorm = 0.3 + amp * 0.4; // between 30% and 70%
+            const barHeight = height * hNorm;
+            return height - barHeight;
+          })
+          .attr("height", (_d, i) => {
+            const amp = Math.abs(Math.sin(time + i));
+            const hNorm = 0.3 + amp * 0.4;
+            return height * hNorm;
+          });
 
-  // ==== PLAYHEAD LINE ====
-  const playheadX = (time % 1) * width;
+        // Moving playhead line
+        const playheadX = (time % 1) * width;
 
-  const playhead = svg.selectAll("line.playhead").data([playheadX]);
+        const playhead = svg.selectAll("line.playhead").data([playheadX]);
 
-  playhead
-    .join(
-      enter => enter
-        .append("line")
-        .attr("class", "playhead")
-        .attr("y1", 0)
-        .attr("y2", height)
-        .attr("stroke", "#ffffff")
-        .attr("stroke-width", 2),
-      update => update
-    )
-    .attr("x1", playheadX)
-    .attr("x2", playheadX);
-},
+        playhead
+          .join(
+            (enter) =>
+              enter
+                .append("line")
+                .attr("class", "playhead")
+                .attr("y1", 0)
+                .attr("y2", height)
+                .attr("stroke", "#ffffff")
+                .attr("stroke-width", 2),
+            (update) => update
+          )
+          .attr("x1", playheadX)
+          .attr("x2", playheadX);
+      },
 
       prebake: async () => {
         initAudioOnFirstClick();
@@ -122,9 +137,13 @@ export default function StrudelDemo() {
           import("@strudel/draw"),
           import("@strudel/mini"),
           import("@strudel/tonal"),
-          import("@strudel/webaudio"),
+          import("@strudel/webaudio")
         );
-        await Promise.all([loadModules, registerSynthSounds(), registerSoundfonts()]);
+        await Promise.all([
+          loadModules,
+          registerSynthSounds(),
+          registerSoundfonts(),
+        ]);
       },
     });
 
@@ -132,7 +151,7 @@ export default function StrudelDemo() {
     if (globalEditor) {
       globalEditor.setCode(processed);
     }
-  }, []); // run once
+  }, [processed]);
 
   // ---- Manual handlers ----
   const handlePreprocess = () => {
@@ -155,42 +174,88 @@ export default function StrudelDemo() {
   };
 
   return (
-    <div className="container-fluid py-3">
-      <h2 className="mb-3 text-center">Strudel Demo</h2>
+    <div className="app-root">
+      {/* Hero header */}
+      <header className="app-header-hero">
+        <h1 className="app-title text-uppercase">Strudel Demo</h1>
+        <a href="#" className="app-header-link">
+          Instruction
+        </a>
+      </header>
 
-      <HeaderBar
-        onPreprocess={handlePreprocess}
-        onProcPlay={handleProcPlay}
-        onPlay={handlePlay}
-        onStop={handleStop}
-      />
+      <div className="container-fluid app-main py-4">
+        <div className="row g-4">
+          {/* Left: Audio + Instrument controls */}
+          <aside className="col-lg-3">
+            <div className="side-panel shadow-sm">
+              <div className="side-panel-inner">
+                <h5 className="section-heading mb-3">Audio Controls</h5>
+                <AudioControls
+                  tempo={tempo}
+                  onTempo={setTempo}
+                  volume={volume}
+                  onVolume={setVolume}
+                />
+                <hr />
+                <h5 className="section-heading mb-3">Instrument Controls</h5>
+                <ControlPanel p1Hush={p1Hush} onChangeP1={setP1Hush} />
+              </div>
+            </div>
+          </aside>
 
-      <div className="row g-4">
-        {/* Left column: editor + processed preview */}
-        <div className="col-md-8 d-flex flex-column" style={{ height: "85vh" }}>
-          <EditorPanel template={template} onChange={setTemplate} />
-          <ReplOutput processed={processed} />
-        </div>
+          {/* Right: Visualiser, buttons, editor + output */}
+          <section className="col-lg-9">
+            {/* Visualiser + buttons card */}
+            <div className="card shadow-sm border-0 mb-4">
+              <div className="card-body">
+                <div className="visualiser-wrapper mb-3">
+                  <svg
+                    id="visualiser"
+                    height="220"
+                    className="visualiser-svg"
+                  />
+                </div>
 
-        {/* Right column: radios + sliders */}
-        <div className="col-md-4">
-          <ControlPanel p1Hush={p1Hush} onChangeP1={setP1Hush} />
-          <AudioControls
-            tempo={tempo}
-            onTempo={setTempo}
-            volume={volume}
-            onVolume={setVolume}
-          />
+                <div className="d-flex justify-content-center">
+                  <HeaderBar
+                    onPreprocess={handlePreprocess}
+                    onProcPlay={handleProcPlay}
+                    onPlay={handlePlay}
+                    onStop={handleStop}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Editor + ReplOutput */}
+            <div className="row g-3">
+              <div className="col-md-6">
+                <div className="card shadow-sm border-0 h-100">
+                  <div className="card-header bg-transparent border-0 pb-0">
+                    <h6 className="section-heading mb-0">
+                      Text to Preprocess
+                    </h6>
+                  </div>
+                  <div className="card-body pt-2">
+                    <EditorPanel template={template} onChange={setTemplate} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-md-6">
+                <div className="card shadow-sm border-0 h-100">
+                  <div className="card-header bg-transparent border-0 pb-0">
+                    <h6 className="section-heading mb-0">Changes Updated</h6>
+                  </div>
+                  <div className="card-body pt-2">
+                    <ReplOutput processed={processed} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
-
-      {/* D3 visualiser (SVG) */}
-      <svg
-        id="visualiser"
-        className="mt-3 mb-5 w-100"
-        height="220"
-        style={{ backgroundColor: "#111", borderRadius: "8px", border: "1px solid #444" }}
-      ></svg>
     </div>
   );
 }
