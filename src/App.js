@@ -50,7 +50,7 @@ export default function StrudelDemo() {
       defaultOutput: webaudioOutput,
       getTime: () => getAudioContext().currentTime,
       transpiler,
-      root: document.getElementById("editor"),
+      root: document.getElementById("editor"),  // mounted in bottom card
       drawTime,
 
       // D3-based pastel bar visualiser representing Strudel playback
@@ -183,10 +183,10 @@ export default function StrudelDemo() {
         </a>
       </header>
 
-      <div className="container-fluid app-main py-4">
-        <div className="row g-4">
-          {/* Left: Audio + Instrument controls */}
-          <aside className="col-lg-3">
+      <div className="container-fluid app-main py-4 app-container">
+        <div className="row gx-3 gy-4 align-items-start">
+          {/* LEFT BLUE PANEL (unchanged) */}
+          <aside className="col-lg-3 col-xl-3 d-flex justify-content-start">
             <div className="side-panel shadow-sm">
               <div className="side-panel-inner">
                 <h5 className="section-heading mb-3">Audio Controls</h5>
@@ -203,9 +203,9 @@ export default function StrudelDemo() {
             </div>
           </aside>
 
-          {/* Right: Visualiser, buttons, editor + output */}
-          <section className="col-lg-9">
-            {/* Visualiser + buttons card */}
+          {/* RIGHT MAIN AREA */}
+          <section className="col-lg-9 col-xl-9">
+            {/* 1. Visualiser + buttons */}
             <div className="card shadow-sm border-0 mb-4">
               <div className="card-body">
                 <div className="visualiser-wrapper mb-3">
@@ -227,7 +227,7 @@ export default function StrudelDemo() {
               </div>
             </div>
 
-            {/* Editor + ReplOutput */}
+            {/* 2. Editor + processed output side by side */}
             <div className="row g-3">
               <div className="col-md-6">
                 <div className="card shadow-sm border-0 h-100">
@@ -245,12 +245,28 @@ export default function StrudelDemo() {
               <div className="col-md-6">
                 <div className="card shadow-sm border-0 h-100">
                   <div className="card-header bg-transparent border-0 pb-0">
-                    <h6 className="section-heading mb-0">Changes Updated</h6>
+                    <h6 className="section-heading mb-0">
+                      Final Processed Output
+                    </h6>
                   </div>
                   <div className="card-body pt-2">
                     <ReplOutput processed={processed} />
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* 3. BOTTOM: Strudel live code editor (black box) */}
+            <div className="card shadow-sm border-0 mt-4">
+              <div className="card-header bg-transparent border-0 pb-0">
+                <h6 className="section-heading mb-0">
+                  Live Strudel Code Editor
+                </h6>
+              </div>
+              <div className="card-body pt-2">
+                {/* StrudelMirror mounts here */}
+                <div id="editor" />
+                <div id="output" />
               </div>
             </div>
           </section>

@@ -48,11 +48,15 @@ body {
 /* Left side panel */
 .side-panel {
   background-color: var(--baby-blue-panel);
-  border-radius: 18px;
-}
+  border-radius: 12px;
+  padding: 1rem;
+  margin-left: 0;           /* stick to left */
+  margin-right: auto;
+  width: 100%;              /* use full column width */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);}
 
 .side-panel-inner {
-  padding: 1.5rem 1.25rem 1.5rem 1.5rem;
+  padding: 1.5rem 1.25rem;
 }
 
 .section-heading {
@@ -119,4 +123,10 @@ hr {
   .side-panel-inner {
     padding: 1.25rem;
   }
+}
+
+.app-container {
+  padding-left: 0;
+  padding-right: 1rem;
+  max-width: 100%;
 }
