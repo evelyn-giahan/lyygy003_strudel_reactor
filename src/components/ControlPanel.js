@@ -1,4 +1,5 @@
 // src/components/ControlPanel.js
+//manages the p1 ON / HUSH radio buttons
 export default function ControlPanel({ p1Hush, onChangeP1 }) {
   return (
     <div className="card">
@@ -17,6 +18,7 @@ export default function ControlPanel({ p1Hush, onChangeP1 }) {
           <label className="form-check-label" htmlFor="p1_on">p1: ON</label>
         </div>
 
+        {/* When this is checked, p1Hush = true and the preprocess function injects "_" */}
         <div className="form-check">
           <input
             className="form-check-input"

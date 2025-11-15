@@ -1,4 +1,7 @@
 // src/components/AudioControls.js
+
+//contains the two sliders for tempo and volume
+//it just calls the callbacks from props when the user moves the sliders
 export default function AudioControls({ tempo, onTempo, volume, onVolume }) {
     return (
       <div className="card mt-3">
@@ -17,6 +20,7 @@ export default function AudioControls({ tempo, onTempo, volume, onVolume }) {
               max="200"
               step="1"
               value={tempo}
+              //convert the slider string value back into a number
               onChange={(e) => onTempo(Number(e.target.value))}
             />
           </div>
