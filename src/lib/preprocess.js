@@ -17,8 +17,9 @@ export function preprocess(template, state) {
   //tempo: setcps(BPM/60/4)
   //volume: apply a global postgain multiplier with `all`
   const header =
-    `setcps(${tempo}/60/4)\n` +
-    `all(x => x.postgain(${volume}))\n\n`;
+  `setcps(${tempo}/60/4)\n` +
+  `all(x => x.postgain(${volume}))\n` + 
+  `all(x => x.log())\n\n`; //make haps log appear in the console 
 
   return header + out;
 }

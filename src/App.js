@@ -15,7 +15,7 @@ import { transpiler } from "@strudel/transpiler";
 import { registerSoundfonts } from "@strudel/soundfonts";
 
 import { stranger_tune } from "./tunes";
-import console_monkey_patch from "./console-monkey-patch";
+import console_monkey_patch, { getD3Data } from "./console-monkey-patch";
 
 import HeaderBar from "./components/HeaderBar";
 import EditorPanel from "./components/EditorPanel";
@@ -28,7 +28,7 @@ import { preprocess } from "./lib/preprocess";
 // (Play / Stop / Proc & Play) can call evaluate() and stop()
 let globalEditor = null;
 
-// this is to even if React re-renders later, don’t boot Strudel again
+// this is to make sure even if React re-renders later, it doesn’t boot Strudel again
 export default function StrudelDemo() {
   const hasRun = useRef(false);
 
@@ -40,117 +40,134 @@ export default function StrudelDemo() {
   // p1Hush is linked to the radio buttons and controls whether <p1_Radio> becomes "_".
   const [p1Hush, setP1Hush] = useState(false);
   // These are the sliders in AudioControls. Right now I pass them into preprocess()
-  //so I can adapt the Strudel code if I want to change tempo and volume
+  // so I can adapt the Strudel code if I want to change tempo and volume.
   const [tempo, setTempo] = useState(140); // BPM
   const [volume, setVolume] = useState(1.0); // 1.0 = normal loudness
 
   // ---- Boot Strudel REPL once ----
   useEffect(() => {
-
-    //make sure the Strudel setup runs only once, the first time the app loads, if don't use it, many elements might duplicates multiple time causing crash
+    // make sure the Strudel setup runs only once, the first time the app loads.
+    // if I don’t gate it, React re-renders could try to create multiple editors.
     if (hasRun.current) return;
     hasRun.current = true;
 
-    //monkey patch console so Strudel logs show up as expected.
-
+    // monkey patch console so Strudel logs show up as expected and
+    // logArray is built for the D3 visualiser.
     console_monkey_patch();
 
-    //show events up to 2 seconds before the current beat and 2 seconds after
-    const drawTime = [-2, 2]; //visible time window Strudel uses for onDraw
+    // show events up to 2 seconds before the current beat and 2 seconds after
+    const drawTime = [-2, 2]; // visible time window Strudel uses for onDraw
 
-
-    //create a StrudelMirror editor and connect it to the hidden #editor div.
+    // create a StrudelMirror editor and connect it to the hidden #editor div.
     globalEditor = new StrudelMirror({
       defaultOutput: webaudioOutput, // use WebAudio as output
-      getTime: () => getAudioContext().currentTime, //syncs with AudioContext time
+      getTime: () => getAudioContext().currentTime, // sync with AudioContext time
       transpiler,
-      root: document.getElementById("editor"),  // mounted in bottom card
+      root: document.getElementById("editor"), // mounted in bottom card
       drawTime,
 
-      // D3-based pastel bar visualiser representing Strudel playback
-      onDraw: (haps, time) => {
-        //select the SVG where I want to draw the bars.
+      // D3-based bar graph driven by the console-monkey-patch data.
+      // x-axis: index 0..99, y-axis: lpenv (or cutoff as fallback).
+      onDraw: () => {
         const svg = d3.select("#visualiser");
         if (svg.empty()) return;
 
-        //use the actual width from the DOM so it adapts to the layout
+        // real width from DOM so it responds to layout changes
         const node = svg.node();
         const rect = node.getBoundingClientRect();
         const width = rect.width || 600;
         const height = parseFloat(svg.attr("height")) || 220;
 
-        //haps (happenings, maybe...) is the list of musical events Strudel gives
-        const data = haps && haps.length > 0 ? haps : [];
-
-        // If no events, clear and bail
-        if (data.length === 0) {
-          svg.selectAll("rect.bar").remove();
-          svg.selectAll("line.playhead").remove();
+        // current rolling array of log lines from console_monkey_patch
+        const rawData = getD3Data();
+        if (!rawData || rawData.length === 0) {
+          svg.selectAll("*").remove();
           return;
         }
 
-        const barWidth = width / data.length;
+        // parse each line and extract lpenv (or cutoff if lpenv missing)
+        const parsed = rawData.map((line, i) => {
+          const match =
+            /lpenv:([0-9.]+)/.exec(line) || /cutoff:([0-9.]+)/.exec(line);
+          const yVal = match ? parseFloat(match[1]) : 0;
+          return { x: i, y: yVal };
+        });
 
-        // Pastel rainbow colour scale
-        const colorScale = d3
-          .scaleSequential()
-          .domain([0, data.length - 1])
-          .interpolator((t) => d3.hsl(t * 360, 0.6, 0.75).formatHex());
+        // chart margins and inner drawing area
+        const margin = { top: 10, right: 10, bottom: 30, left: 40 };
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
 
-        // Height based on time plus index so it moves smoothly but doesn't "stack"
-        const bars = svg.selectAll("rect.bar").data(data, (_d, i) => i);
+        // clear previous frame so we can redraw fresh from the latest array
+        svg.selectAll("*").remove();
 
-        bars
-          .join(
-            (enter) =>
-              enter
-                .append("rect")
-                .attr("class", "bar")
-                //Because it keep jumping before so I start from the bottom with zero height so the bar does not jump
-                .attr("y", height)
-                .attr("height", 0),
-            (update) => update,
-            (exit) => exit.remove()
-          )
-          .attr("x", (_d, i) => i * barWidth)
-          .attr("width", Math.max(barWidth - 3, 1)) // small gap by substract a few pixels
-          .attr("fill", (_d, i) => colorScale(i))
-          .attr("y", (_d, i) => {
-            //I don’t have direct amplitude here, so I fake movement using time + index
-            //this makes the bars breathe with time instead of staying static
-            const amp = Math.abs(Math.sin(time + i)); // 0..1
-            const hNorm = 0.3 + amp * 0.4; // between 30% and 70% of the height
-            const barHeight = height * hNorm;
-            return height - barHeight; //draw from bottom upwards
-          })
-          .attr("height", (_d, i) => {
-            const amp = Math.abs(Math.sin(time + i));
-            const hNorm = 0.3 + amp * 0.4;
-            return height * hNorm;
-          });
+        // main <g> wrapper with margin transform
+        const g = svg
+          .append("g")
+          .attr("transform", `translate(${margin.left},${margin.top})`);
 
-        // Moving playhead line. little white line
-        const playheadX = (time % 1) * width;
+        // gradient definition for pretty bars
+        const defs = svg.append("defs");
+        const gradient = defs
+          .append("linearGradient")
+          .attr("id", "gradient")
+          .attr("x1", "0%")
+          .attr("x2", "0%")
+          .attr("y1", "100%")
+          .attr("y2", "0%");
 
-        const playhead = svg.selectAll("line.playhead").data([playheadX]);
+        gradient
+          .append("stop")
+          .attr("offset", "0%")
+          .attr("stop-color", "#91b8f7ff")
+          .attr("stop-opacity", 0.7);
 
-        playhead
-          .join(
-            (enter) =>
-              enter
-                .append("line")
-                .attr("class", "playhead")
-                .attr("y1", 0)
-                .attr("y2", height)
-                .attr("stroke", "#ffffff")
-                .attr("stroke-width", 2),
-            (update) => update
-          )
-          .attr("x1", playheadX)
-          .attr("x2", playheadX);
+        gradient
+          .append("stop")
+          .attr("offset", "100%")
+          .attr("stop-color", "#ffacdbff")
+          .attr("stop-opacity", 1.0);
+
+        // x: index of log entry (0..99)
+        const x = d3
+          .scaleBand()
+          .domain(parsed.map((d) => d.x))
+          .range([0, innerWidth])
+          .padding(0.1);
+
+        // y: lpenv / cutoff value
+        const yMax = d3.max(parsed, (d) => d.y) || 1;
+        const y = d3
+          .scaleLinear()
+          .domain([0, yMax])
+          .range([innerHeight, 0]);
+
+        // axes (only show some x ticks to avoid clutter)
+        const xAxis = d3
+          .axisBottom(x)
+          .tickValues(parsed.filter((d) => d.x % 10 === 0).map((d) => d.x));
+        const yAxis = d3.axisLeft(y).ticks(5);
+
+        g.append("g")
+          .attr("transform", `translate(0,${innerHeight})`)
+          .call(xAxis)
+          .attr("color", "#aaa");
+
+        g.append("g").call(yAxis).attr("color", "#aaa");
+
+        // bars: height is based on the parsed lpenv/cutoff
+        g.selectAll(".bar")
+          .data(parsed)
+          .join("rect")
+          .attr("class", "bar")
+          .attr("x", (d) => x(d.x))
+          .attr("width", x.bandwidth())
+          .attr("y", (d) => y(d.y))
+          .attr("height", (d) => innerHeight - y(d.y))
+          .attr("fill", "url(#gradient)");
       },
 
-      //load all required modules and soundfonts
+      // load all required modules and soundfonts
       prebake: async () => {
         initAudioOnFirstClick();
         const loadModules = evalScope(
@@ -168,34 +185,35 @@ export default function StrudelDemo() {
       },
     });
 
-    //load the default Strudel tune into the REPL output when the page first loads
-    //Without this, the editor starts empty and no music will play until the user adds code manually
+    // load the default Strudel tune into the REPL output when the page first loads.
+    // without this, the editor starts empty and no music will play until the user adds code manually.
     if (globalEditor) {
       globalEditor.setCode(processed);
     }
-  }, [processed]);
+  }, []); // run once – hasRun + this empty dependency keeps the setup stable
 
   // ---- Manual handlers ----
-    //This function applies my custom preprocess function to the template text
+  // This function applies my custom preprocess function to the template text.
   const handlePreprocess = () => {
-      //pass in the whole state so preprocess can decide what to change
+    // pass in the whole state so preprocess can decide what to change.
     const next = preprocess(template, { p1Hush, tempo, volume });
     setProcessed(next);
-    //after preprocessing, push the new code into StrudelMirror
+    // after preprocessing, push the new code into StrudelMirror.
     if (globalEditor) globalEditor.setCode(next);
   };
 
-  //preprocess and then immediately play
+  // Preprocess and then immediately play.
   const handleProcPlay = () => {
     handlePreprocess();
     if (globalEditor) globalEditor.evaluate();
   };
 
-  //plays whatever code is currently inside the Strudel editor
+  // Plays whatever code is currently inside the Strudel editor.
   const handlePlay = () => {
     if (globalEditor) globalEditor.evaluate();
   };
-//stop the current playback
+
+  // Stop the current playback.
   const handleStop = () => {
     if (globalEditor) globalEditor.stop();
   };
@@ -264,7 +282,7 @@ export default function StrudelDemo() {
                     </h6>
                   </div>
                   <div className="card-body pt-2">
-                    {/* This is the large textarea the user edits, one the left side of the right part, first column*/}
+                    {/* This is the large textarea the user edits, one the left side of the right part, first column */}
                     <EditorPanel template={template} onChange={setTemplate} />
                   </div>
                 </div>
