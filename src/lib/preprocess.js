@@ -11,7 +11,7 @@ export function preprocess(template, state) {
 
   //apply instrument toggle tag
   //use "_" to truly mute that voice; "" when ON.
-  out = out.replaceAll("<p1_Radio>", p1Hush ? "_" : "");
+  out = out.replaceAll("<p1_radio>", p1Hush ? "_" : "");
 
   //prepend tempo & volume header
   //tempo: setcps(BPM/60/4)
