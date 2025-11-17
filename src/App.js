@@ -1,6 +1,7 @@
 // src/App.js
 import "./App.css";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import * as d3 from "d3";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
@@ -22,8 +23,10 @@ import console_monkey_patch, { getD3Data } from "./console-monkey-patch";
 import HeaderBar from "./components/HeaderBar";
 import EditorPanel from "./components/EditorPanel";
 import ReplOutput from "./components/ReplOutput";
-import ControlPanel from "./components/ControlPanel";
+import InstrumentControls from "./components/InstrumentControls";
 import AudioControls from "./components/AudioControls";
+import ThemeControls from "./components/ThemeControls";
+import D3Graph from "./components/D3Graph";
 import { preprocess } from "./lib/preprocess";
 import { saveSettings, loadSettings } from "./lib/settingsStorage"; // JSON helpers
 
@@ -255,9 +258,9 @@ export default function StrudelDemo() {
       {/* Hero header */}
       <header className="app-header-hero">
         <h1 className="app-title text-uppercase">Strudel Demo</h1>
-        <a href="#" className="app-header-link">
+        <Link to="/instructions" className="app-header-link">
           Instruction
-        </a>
+        </Link>
       </header>
 
       <div className="container-fluid app-main py-4 app-container">
@@ -319,7 +322,7 @@ export default function StrudelDemo() {
                       aria-labelledby="instrumentControlsHeading"
                     >
                       <div className="accordion-body">
-                        <ControlPanel p1Hush={p1Hush} onChangeP1={setP1Hush} />
+                        <InstrumentControls p1Hush={p1Hush} onChangeP1={setP1Hush} />
                       </div>
                     </div>
                   </div>
@@ -344,19 +347,9 @@ export default function StrudelDemo() {
                       aria-labelledby="themeControlsHeading"
                     >
                       <div className="accordion-body">
-                        <div className="form-check form-switch mt-2">
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            id="themeSwitch"
-                            checked={darkMode}
-                            onChange={(e) => setDarkMode(e.target.checked)}
-                          />
-                          <label className="form-check-label" htmlFor="themeSwitch">
-                            {darkMode ? "Dark theme" : "Light theme"}
-                          </label>
-                        </div>
+                        <ThemeControls darkMode={darkMode} onToggle={setDarkMode} />
                       </div>
+
                     </div>
                   </div>
 
@@ -415,21 +408,17 @@ export default function StrudelDemo() {
             {/* 1. Visualiser + buttons */}
             <div className="card shadow-sm border-0 mb-4">
               <div className="card-body">
-                <div className="visualiser-wrapper mb-3">
-                  <svg
-                    id="visualiser"
-                    height="220"
-                    className="visualiser-svg"
-                  />
-                </div>
+                <div className="card-body">
+                  <D3Graph height={220} />
 
-                <div className="d-flex justify-content-center">
-                  <HeaderBar
-                    onPreprocess={handlePreprocess}
-                    onProcPlay={handleProcPlay}
-                    onPlay={handlePlay}
-                    onStop={handleStop}
-                  />
+                  <div className="d-flex justify-content-center">
+                    <HeaderBar
+                      onPreprocess={handlePreprocess}
+                      onProcPlay={handleProcPlay}
+                      onPlay={handlePlay}
+                      onStop={handleStop}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
