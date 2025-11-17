@@ -44,6 +44,8 @@ export default function StrudelDemo() {
   // so I can adapt the Strudel code if I want to change tempo and volume.
   const [tempo, setTempo] = useState(140); // BPM
   const [volume, setVolume] = useState(1.0); // 1.0 = normal loudness
+  //adding new state for dark mode toggle (false = light, true = dark)
+  const [darkMode, setDarkMode] = useState(false);
 
   // ---- Boot Strudel REPL once ----
   useEffect(() => {
@@ -247,7 +249,7 @@ export default function StrudelDemo() {
   };
 
   return (
-    <div className="app-root">
+  <div className={`app-root ${darkMode ? "theme-dark" : "theme-light"}`}>
       {/* Hero header */}
       <header className="app-header-hero">
         <h1 className="app-title text-uppercase">Strudel Demo</h1>
@@ -272,7 +274,15 @@ export default function StrudelDemo() {
                 <hr />
                 <h5 className="section-heading mb-3">Instrument Controls</h5>
                 <ControlPanel p1Hush={p1Hush} onChangeP1={setP1Hush} />
-                
+                {/* Theme toggle */} 
+                <hr />
+                <div className="form-check form-switch mt-2">
+                  <input
+                  className="form-check-input" type="checkbox" id="themeSwitch" checked={darkMode} onChange={(e) => setDarkMode(e.target.checked)}/>
+                  <label className="form-check-label" htmlFor="themeSwitch">
+                    {darkMode ? "Dark theme" : "Light theme"}
+                    </label>
+                    </div>
                 {/* JSON Save / Load buttons */}
                 <hr />
                 <h5 className="section-heading mb-3">Settings JSON</h5>
