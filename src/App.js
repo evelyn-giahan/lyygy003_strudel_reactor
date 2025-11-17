@@ -23,6 +23,7 @@ import ReplOutput from "./components/ReplOutput";
 import ControlPanel from "./components/ControlPanel";
 import AudioControls from "./components/AudioControls";
 import { preprocess } from "./lib/preprocess";
+import { saveSettings, loadSettings } from "./lib/settingsStorage"; // JSON helpers
 
 // I keep a global reference to the Strudel editor so the buttons
 // (Play / Stop / Proc & Play) can call evaluate() and stop()
@@ -192,6 +193,37 @@ export default function StrudelDemo() {
     }
   }, []); // run once – hasRun + this empty dependency keeps the setup stable
 
+// ---- JSON Save / Load handlers ----
+  const handleSaveSettings = () => {
+    const settings = {
+      template,
+      p1Hush,
+      tempo,
+      volume,
+    };
+    // This calls into settingsStorage.js which logs the object + JSON string.
+    saveSettings(settings);
+  };
+
+  const handleLoadSettings = () => {
+    const loaded = loadSettings();
+    if (!loaded) return;
+
+    // Safely restore each field if it exists.
+    if (typeof loaded.template === "string") {
+      setTemplate(loaded.template);
+    }
+    if (typeof loaded.p1Hush === "boolean") {
+      setP1Hush(loaded.p1Hush);
+    }
+    if (typeof loaded.tempo === "number") {
+      setTempo(loaded.tempo);
+    }
+    if (typeof loaded.volume === "number") {
+      setVolume(loaded.volume);
+    }
+  };
+
   // ---- Manual handlers ----
   // This function applies my custom preprocess function to the template text.
   const handlePreprocess = () => {
@@ -244,6 +276,26 @@ export default function StrudelDemo() {
                 <hr />
                 <h5 className="section-heading mb-3">Instrument Controls</h5>
                 <ControlPanel p1Hush={p1Hush} onChangeP1={setP1Hush} />
+                
+                {/* JSON Save / Load buttons */}
+                <hr />
+                <h5 className="section-heading mb-3">Settings JSON</h5>
+                <div className="d-flex gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={handleSaveSettings}
+                  >
+                    Save settings
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={handleLoadSettings}
+                  >
+                    Load settings
+                  </button>
+                </div>
               </div>
             </div>
           </aside>
