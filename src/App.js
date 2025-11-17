@@ -2,6 +2,8 @@
 import "./App.css";
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
 import { StrudelMirror } from "@strudel/codemirror";
 import { evalScope } from "@strudel/core";
@@ -195,7 +197,7 @@ export default function StrudelDemo() {
     }
   }, []); // run once – hasRun + this empty dependency keeps the setup stable
 
-// ---- JSON Save / Load handlers ----
+  // ---- JSON Save / Load handlers ----
   const handleSaveSettings = () => {
     const settings = {
       p1Hush,
@@ -249,7 +251,7 @@ export default function StrudelDemo() {
   };
 
   return (
-  <div className={`app-root ${darkMode ? "theme-dark" : "theme-light"}`}>
+    <div className={`app-root ${darkMode ? "theme-dark" : "theme-light"}`}>
       {/* Hero header */}
       <header className="app-header-hero">
         <h1 className="app-title text-uppercase">Strudel Demo</h1>
@@ -262,49 +264,151 @@ export default function StrudelDemo() {
         <div className="row gx-3 gy-4 align-items-start">
           {/* LEFT BLUE PANEL */}
           <aside className="col-lg-3 col-xl-3 d-flex justify-content-start">
-            <div className="side-panel shadow-sm">
+            <div className="side-panel shadow-sm w-100">
               <div className="side-panel-inner">
-                <h5 className="section-heading mb-3">Audio Controls</h5>
-                <AudioControls
-                  tempo={tempo}
-                  onTempo={setTempo}
-                  volume={volume}
-                  onVolume={setVolume}
-                />
-                <hr />
-                <h5 className="section-heading mb-3">Instrument Controls</h5>
-                <ControlPanel p1Hush={p1Hush} onChangeP1={setP1Hush} />
-                {/* Theme toggle */} 
-                <hr />
-                <div className="form-check form-switch mt-2">
-                  <input
-                  className="form-check-input" type="checkbox" id="themeSwitch" checked={darkMode} onChange={(e) => setDarkMode(e.target.checked)}/>
-                  <label className="form-check-label" htmlFor="themeSwitch">
-                    {darkMode ? "Dark theme" : "Light theme"}
-                    </label>
+                {/* I swapped the old stacked headings for an accordion so the left panel feels less crowded */}
+                <div className="accordion" id="sideControlsAccordion">
+
+                  {/* Audio section */}
+                  <div className="accordion-item">
+                    <h2 className="accordion-header" id="audioControlsHeading">
+                      <button
+                        className="accordion-button"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#audioControlsBody"
+                        aria-expanded="true"
+                        aria-controls="audioControlsBody"
+                      >
+                        Audio Controls
+                      </button>
+                    </h2>
+                    <div
+                      id="audioControlsBody"
+                      className="accordion-collapse collapse show"
+                      aria-labelledby="audioControlsHeading"
+                    >
+                      <div className="accordion-body">
+                        <AudioControls
+                          tempo={tempo}
+                          onTempo={setTempo}
+                          volume={volume}
+                          onVolume={setVolume}
+                        />
+                      </div>
                     </div>
-                {/* JSON Save / Load buttons */}
-                <hr />
-                <h5 className="section-heading mb-3">Settings JSON</h5>
-                <div className="d-flex gap-2 flex-wrap">
-                  <button
-                    type="button"
-                    className="btn btn-outline-primary btn-sm"
-                    onClick={handleSaveSettings}
-                  >
-                    Save settings
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary btn-sm"
-                    onClick={handleLoadSettings}
-                  >
-                    Load settings
-                  </button>
+                  </div>
+
+                  {/* Instrument section */}
+                  <div className="accordion-item">
+                    <h2 className="accordion-header" id="instrumentControlsHeading">
+                      <button
+                        className="accordion-button collapsed"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#instrumentControlsBody"
+                        aria-expanded="false"
+                        aria-controls="instrumentControlsBody"
+                      >
+                        Instrument Controls
+                      </button>
+                    </h2>
+                    <div
+                      id="instrumentControlsBody"
+                      className="accordion-collapse collapse"
+                      aria-labelledby="instrumentControlsHeading"
+                    >
+                      <div className="accordion-body">
+                        <ControlPanel p1Hush={p1Hush} onChangeP1={setP1Hush} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Theme / dark–light toggle */}
+                  <div className="accordion-item">
+                    <h2 className="accordion-header" id="themeControlsHeading">
+                      <button
+                        className="accordion-button collapsed"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#themeControlsBody"
+                        aria-expanded="false"
+                        aria-controls="themeControlsBody"
+                      >
+                        Theme Controls
+                      </button>
+                    </h2>
+                    <div
+                      id="themeControlsBody"
+                      className="accordion-collapse collapse"
+                      aria-labelledby="themeControlsHeading"
+                    >
+                      <div className="accordion-body">
+                        <div className="form-check form-switch mt-2">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            id="themeSwitch"
+                            checked={darkMode}
+                            onChange={(e) => setDarkMode(e.target.checked)}
+                          />
+                          <label className="form-check-label" htmlFor="themeSwitch">
+                            {darkMode ? "Dark theme" : "Light theme"}
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* JSON save / load controls */}
+                  <div className="accordion-item">
+                    <h2 className="accordion-header" id="jsonSettingsHeading">
+                      <button
+                        className="accordion-button collapsed"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#jsonSettingsBody"
+                        aria-expanded="false"
+                        aria-controls="jsonSettingsBody"
+                      >
+                        Settings JSON
+                      </button>
+                    </h2>
+                    <div
+                      id="jsonSettingsBody"
+                      className="accordion-collapse collapse"
+                      aria-labelledby="jsonSettingsHeading"
+                    >
+                      <div className="accordion-body">
+                        <p className="small mb-2">
+                          Save or reload your tempo, volume and p1 hush state as JSON.
+                        </p>
+                        <div className="d-flex gap-2 flex-wrap">
+                          <button
+                            type="button"
+                            className="btn btn-outline-primary btn-sm"
+                            onClick={handleSaveSettings}
+                          >
+                            Save settings
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary btn-sm"
+                            onClick={handleLoadSettings}
+                          >
+                            Load settings
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
+                {/* end accordion */}
               </div>
             </div>
           </aside>
+
 
           {/* RIGHT MAIN AREA */}
           <section className="col-lg-9 col-xl-9">
