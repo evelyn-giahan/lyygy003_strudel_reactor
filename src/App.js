@@ -196,7 +196,6 @@ export default function StrudelDemo() {
 // ---- JSON Save / Load handlers ----
   const handleSaveSettings = () => {
     const settings = {
-      template,
       p1Hush,
       tempo,
       volume,
@@ -210,9 +209,6 @@ export default function StrudelDemo() {
     if (!loaded) return;
 
     // Safely restore each field if it exists.
-    if (typeof loaded.template === "string") {
-      setTemplate(loaded.template);
-    }
     if (typeof loaded.p1Hush === "boolean") {
       setP1Hush(loaded.p1Hush);
     }
