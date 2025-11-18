@@ -7,10 +7,10 @@ export function preprocess(template, state) {
   let out = template;
 
   //remove any existing setcps(...) lines in the template (to avoid double tempo)
-  // My UI injects a fresh tempo line every time (setcps(BPM/60/4)).
+  // My UI injects a fresh tempo line every time (setcps(BPM/60/4))
   // If the original tune already contains its own setcps(), Strudel
   // will keep BOTH lines and the *second one wins*. That means the 
-  // old tempo inside the tune would override my UI slider value.
+  // old tempo inside the tune would override my UI slider valuead value
   //
   // Simple example:
   //   User tune contains:   setcps(30/60/4)     // slow

@@ -25,8 +25,6 @@ import EditorPanel from "./components/EditorPanel";
 import ReplOutput from "./components/ReplOutput";
 import InstrumentControls from "./components/InstrumentControls";
 import AudioControls from "./components/AudioControls";
-import ThemeControls from "./components/ThemeControls";
-import D3Graph from "./components/D3Graph";
 import { preprocess } from "./lib/preprocess";
 import { saveSettings, loadSettings } from "./lib/settingsStorage"; // JSON helpers
 
@@ -257,11 +255,12 @@ export default function StrudelDemo() {
     <div className={`app-root ${darkMode ? "theme-dark" : "theme-light"}`}>
       {/* Hero header */}
       <header className="app-header-hero">
-        <h1 className="app-title text-uppercase">Strudel Demo</h1>
-        <Link to="/instructions" className="app-header-link">
-          Instruction
-        </Link>
-      </header>
+       <h1 className="app-title text-uppercase">Strudel Demo</h1>
+       <Link to="/instructions" className="app-header-link">
+         Instruction
+       </Link>
+     </header>
+
 
       <div className="container-fluid app-main py-4 app-container">
         <div className="row gx-3 gy-4 align-items-start">
@@ -347,9 +346,19 @@ export default function StrudelDemo() {
                       aria-labelledby="themeControlsHeading"
                     >
                       <div className="accordion-body">
-                        <ThemeControls darkMode={darkMode} onToggle={setDarkMode} />
+                        <div className="form-check form-switch mt-2">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            id="themeSwitch"
+                            checked={darkMode}
+                            onChange={(e) => setDarkMode(e.target.checked)}
+                          />
+                          <label className="form-check-label" htmlFor="themeSwitch">
+                            {darkMode ? "Dark theme" : "Light theme"}
+                          </label>
+                        </div>
                       </div>
-
                     </div>
                   </div>
 
@@ -408,17 +417,21 @@ export default function StrudelDemo() {
             {/* 1. Visualiser + buttons */}
             <div className="card shadow-sm border-0 mb-4">
               <div className="card-body">
-                <div className="card-body">
-                  <D3Graph height={220} />
+                <div className="visualiser-wrapper mb-3">
+                  <svg
+                    id="visualiser"
+                    height="220"
+                    className="visualiser-svg"
+                  />
+                </div>
 
-                  <div className="d-flex justify-content-center">
-                    <HeaderBar
-                      onPreprocess={handlePreprocess}
-                      onProcPlay={handleProcPlay}
-                      onPlay={handlePlay}
-                      onStop={handleStop}
-                    />
-                  </div>
+                <div className="d-flex justify-content-center">
+                  <HeaderBar
+                    onPreprocess={handlePreprocess}
+                    onProcPlay={handleProcPlay}
+                    onPlay={handlePlay}
+                    onStop={handleStop}
+                  />
                 </div>
               </div>
             </div>

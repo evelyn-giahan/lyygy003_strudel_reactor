@@ -4,6 +4,7 @@
 
 const STORAGE_KEY = "strudelSettings_v1";
 
+//function to save the current setting
 export function saveSettings(settings) {
   try {
     console.log("Saving settings object:", settings);
