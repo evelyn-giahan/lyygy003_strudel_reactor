@@ -11,7 +11,7 @@ export default function Instruction() {
 
         {/* back link on the left */}
         <Link to="/" className="app-header-link">
-          &lt; Back
+          &#x2190; Back
         </Link>
       </header>
 
@@ -23,15 +23,15 @@ export default function Instruction() {
                 <h2 className="mb-3">How to use this Strudel demo</h2>
 
                 <p>
-                  This page explains how the main Strudel page works. Use it as a
-                  quick guide for markers or anyone maintaining the project.
+                  Hi, welcome to the Strudel Page. This page explains how the main Strudel page works. 
                 </p>
 
                 <h4 className="mt-4">1. Audio Controls</h4>
                 <p>
                   The tempo slider changes <code>setcps(BPM/60/4)</code> in the
-                  preprocess step. The volume slider multiplies every voice with{" "}
-                  <code>all(x =&gt; x.postgain(volume))</code>.
+                  preprocess step. This is where you can modify the speed of the playback. The volume slider multiplies every voice with{" "}
+                  <code>all(x =&gt; x.postgain(volume))</code>. Use this volume slider if you want to turn up the volume or turn it down.
+                  There is also a <strong>speaker icon</strong> where you can quickly mute the volume and unmute it whenever you want
                 </p>
 
                 <h4 className="mt-4">2. Instrument Controls</h4>
@@ -59,7 +59,7 @@ export default function Instruction() {
                 <p className="mt-4 mb-0">
                   When you are ready to experiment, use the{" "}
                   <Link to="/">Back</Link> link at the top to return to the main
-                  Strudel page.
+                  Strudel page. Thank you for reading all these. <strong>Author:</strong> Gia Han Ly (lyygy003). 
                 </p>
               </div>
             </div>

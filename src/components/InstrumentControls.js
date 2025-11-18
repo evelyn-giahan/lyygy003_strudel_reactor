@@ -5,7 +5,6 @@ import React from "react";
 export default function InstrumentControls({ p1Hush, onChangeP1 }) {
   return (
     <div>
-      <p className="mb-2 fw-semibold">Instrument Controls</p>
 
       <div className="form-check">
         <input

@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import * as d3 from "d3";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import "bootstrap-icons/font/bootstrap-icons.css";
 
 import { StrudelMirror } from "@strudel/codemirror";
 import { evalScope } from "@strudel/core";
@@ -49,6 +50,30 @@ export default function StrudelDemo() {
   const [volume, setVolume] = useState(1.0); // 1.0 = normal loudness
   //adding new state for dark mode toggle (false = light, true = dark)
   const [darkMode, setDarkMode] = useState(false);
+  //this state is to track whenever the playbakc is running
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [lastVolume, setLastVolume] = useState(1.0);
+
+  function runWithState({ nextTempo = tempo, nextVolume = volume } = {}) {
+  const nextCode = preprocess(template, {
+    p1Hush,
+    tempo: nextTempo,
+    volume: nextVolume,
+  });
+
+  setProcessed(nextCode);
+
+  if (globalEditor) {
+    globalEditor.stop();
+
+    globalEditor.setCode(nextCode);
+    globalEditor.evaluate();
+  }
+
+  setIsPlaying(true);
+}
+
 
   // ---- Boot Strudel REPL once ----
   useEffect(() => {
@@ -225,6 +250,55 @@ export default function StrudelDemo() {
     }
   };
 
+  const handleTempoChange = (newTempo) => {
+    setTempo(newTempo);
+
+    if (isPlaying) {
+      runWithState({ nextTempo: newTempo });
+    }
+  };
+
+  const handleVolumeChange = (newVolume) => {
+    setVolume(newVolume);
+
+    // if user drags slider above 0, remember it as “normal” volume
+    if (newVolume > 0) {
+      setLastVolume(newVolume);
+      setIsMuted(false);
+    } else {
+      setIsMuted(true);
+    }
+
+    if (isPlaying) {
+      runWithState({ nextVolume: newVolume });
+    }
+  };
+
+
+  const handleToggleMute = () => {
+    if (!isMuted) {
+      // going from unmuted -> muted
+      const safeLast = volume > 0 ? volume : lastVolume || 1.0;
+      setLastVolume(safeLast);
+      setIsMuted(true);
+      setVolume(0);
+
+      if (isPlaying) {
+        runWithState({ nextVolume: 0 });
+      }
+    } else {
+      // going from muted -> unmuted
+      const restored = lastVolume || 1.0;
+      setIsMuted(false);
+      setVolume(restored);
+
+      if (isPlaying) {
+        runWithState({ nextVolume: restored });
+      }
+    }
+  };
+
+
   // ---- Manual handlers ----
   // This function applies my custom preprocess function to the template text.
   const handlePreprocess = () => {
@@ -237,29 +311,36 @@ export default function StrudelDemo() {
 
   // Preprocess and then immediately play.
   const handleProcPlay = () => {
-    handlePreprocess();
-    if (globalEditor) globalEditor.evaluate();
+    runWithState(); // uses current tempo + volume
   };
+
 
   // Plays whatever code is currently inside the Strudel editor.
   const handlePlay = () => {
-    if (globalEditor) globalEditor.evaluate();
+    if (globalEditor) {
+      globalEditor.evaluate();
+      setIsPlaying(true);
+    }
   };
+
 
   // Stop the current playback.
   const handleStop = () => {
-    if (globalEditor) globalEditor.stop();
+    if (globalEditor) {
+      globalEditor.stop();
+      setIsPlaying(false);
+    }
   };
 
   return (
     <div className={`app-root ${darkMode ? "theme-dark" : "theme-light"}`}>
       {/* Hero header */}
       <header className="app-header-hero">
-       <h1 className="app-title text-uppercase">Strudel Demo</h1>
-       <Link to="/instructions" className="app-header-link">
-         Instruction
-       </Link>
-     </header>
+        <h1 className="app-title text-uppercase">Strudel Demo</h1>
+        <Link to="/instructions" className="app-header-link">
+          Instruction
+        </Link>
+      </header>
 
 
       <div className="container-fluid app-main py-4 app-container">
@@ -293,9 +374,11 @@ export default function StrudelDemo() {
                       <div className="accordion-body">
                         <AudioControls
                           tempo={tempo}
-                          onTempo={setTempo}
+                          onTempo={handleTempoChange}
                           volume={volume}
-                          onVolume={setVolume}
+                          onVolume={handleVolumeChange}
+                          isMuted={isMuted}
+                          onToggleMute={handleToggleMute}
                         />
                       </div>
                     </div>
@@ -382,9 +465,6 @@ export default function StrudelDemo() {
                       aria-labelledby="jsonSettingsHeading"
                     >
                       <div className="accordion-body">
-                        <p className="small mb-2">
-                          Save or reload your tempo, volume and p1 hush state as JSON.
-                        </p>
                         <div className="d-flex gap-2 flex-wrap">
                           <button
                             type="button"

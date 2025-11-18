@@ -162,6 +162,44 @@ hr {
   color: #93c5fd;
 }
 
+
+/* ------- DARK THEME OVERRIDES ------- */
+
+.app-root.theme-dark .side-panel {
+  background-color: #020617;        /* very dark blue/grey */
+  border-color: #1f2937;
+}
+
+.app-root.theme-dark .side-panel-inner {
+  background-color: #020617;
+}
+
+.app-root.theme-dark .accordion-item {
+  background-color: transparent;
+  border-color: #1f2937;
+}
+
+.app-root.theme-dark .accordion-button {
+  background-color: #0b1120;        /* header strip */
+  color: #e5e7eb;
+}
+
+.app-root.theme-dark .accordion-button:not(.collapsed) {
+  background-color: #111827;
+  color: #e5e7eb;
+}
+
+.app-root.theme-dark .accordion-button::after {
+  filter: invert(1);                /* makes the little arrow light */
+}
+
+.app-root.theme-dark .side-panel-inner,
+.app-root.theme-dark .side-panel-inner label,
+.app-root.theme-dark .side-panel-inner h5 {
+  color: #e5e7eb;
+}
+
+
 /* Cards & visualiser */
 .app-root.theme-dark .card {
   background-color: #020617;
@@ -197,4 +235,25 @@ hr {
 .app-root.theme-dark pre {
   background-color: #020617 !important;
   color: #e5e7eb;
+}
+
+/* default mute button style */
+.mute-button {
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.6rem;
+}
+
+/* icon colour in light theme */
+.app-root.theme-light .mute-button i {
+  color: #374151; /* dark grey */
+}
+
+/* icon colour in dark theme */
+.app-root.theme-dark .mute-button i {
+  color: #f9fafb; /* near white */
+}
+
+/* optional hover */
+.mute-button:hover i {
+  opacity: 0.8;
 }
