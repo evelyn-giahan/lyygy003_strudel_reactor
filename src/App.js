@@ -59,8 +59,10 @@ export default function StrudelDemo() {
   const [darkMode, setDarkMode] = useState(false);
   //this state is to track whenever the playbakc is running
   const [isPlaying, setIsPlaying] = useState(false);
-
+  // isMuted: true when the mute button is on (so I know UI + audio should be silent)
   const [isMuted, setIsMuted] = useState(false);
+  // lastVolume: remember the last non-zero volume so when I unmute
+  // I can jump back to that level instead of always going to 1.0
   const [lastVolume, setLastVolume] = useState(1.0);
 
   // Helper to re-run preprocess() using the current template + state,
@@ -448,6 +450,14 @@ export default function StrudelDemo() {
                     >
                       <div className="accordion-body">
                         <InstrumentControls p1Hush={p1Hush} onChangeP1={setP1Hush} />
+                        <div className="mt-3 small">
+                          <p className="mb-1">Copy-paste tags for your Strudel code:</p>
+                          <p className="mb-0">
+                            <code>&lt;p1_radio&gt;</code><br />
+                            <code>&lt;p1_block_start&gt;</code><br />
+                            <code>&lt;p1_block_end&gt;</code>
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>

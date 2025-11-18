@@ -7,7 +7,7 @@ export default function EditorPanel({ template, onChange }) {
       <textarea
         className="form-control flex-grow-1"
         style={{ minHeight: "60vh", resize: "none" }} //disable manual resizing to keep the layout stable
-        value={template}
+        value={template}   // template = whatever text the user is editing (Strudel code with my tags)
         //notify the App.js whenever the user types
         onChange={(e) => onChange(e.target.value)}
       />
