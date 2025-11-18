@@ -1,4 +1,11 @@
 // src/App.js
+// Main React component for my Strudel demo.
+// This file wires everything together:
+// - React state (tempo, volume, p1Hush, darkMode, etc.)
+// - StrudelMirror editor + audio
+// - D3 visualiser that reads real Strudel logs (via console_monkey_patch)
+// - All the small UI components (audio controls, instrument controls, editor, etc.)
+
 import "./App.css";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -52,38 +59,49 @@ export default function StrudelDemo() {
   const [darkMode, setDarkMode] = useState(false);
   //this state is to track whenever the playbakc is running
   const [isPlaying, setIsPlaying] = useState(false);
+
   const [isMuted, setIsMuted] = useState(false);
   const [lastVolume, setLastVolume] = useState(1.0);
 
+  // Helper to re-run preprocess() using the current template + state,
+  // and immediately restart playback with the new tempo/volume.
+  // nextTempo / nextVolume let me override just those two when sliders move.
   function runWithState({ nextTempo = tempo, nextVolume = volume } = {}) {
-  const nextCode = preprocess(template, {
-    p1Hush,
-    tempo: nextTempo,
-    volume: nextVolume,
-  });
+    const nextCode = preprocess(template, {
+      p1Hush,
+      tempo: nextTempo,
+      volume: nextVolume,
+    });
 
-  setProcessed(nextCode);
+    setProcessed(nextCode);
 
-  if (globalEditor) {
-    globalEditor.stop();
+    if (globalEditor) {
+      // always stop the old pattern first before loading new code
+      globalEditor.stop();
 
-    globalEditor.setCode(nextCode);
-    globalEditor.evaluate();
+      globalEditor.setCode(nextCode);
+      globalEditor.evaluate();
+    }
+
+    setIsPlaying(true);
   }
-
-  setIsPlaying(true);
-}
-
 
   // ---- Boot Strudel REPL once ----
   useEffect(() => {
-    // make sure the Strudel setup runs only once, the first time the app loads.
-    // if I don’t gate it, React re-renders could try to create multiple editors.
+    // make sure the Strudel setup runs only once, the first time the app loads
+    // if I don’t gate it, React re-renders could try to create multiple editors
     if (hasRun.current) return;
     hasRun.current = true;
 
     // monkey patch console so Strudel logs show up as expected and
-    // logArray is built for the D3 visualiser.
+    // logArray is built for the D3 visualiser
+    //
+    // Originally I faked visualiser data using Math.sin(...) just to make
+    // the bars move, but that wasn’t connected to the real sound at all.
+    // After tutor feedback, I changed it so console_monkey_patch captures
+    // actual Strudel log lines (with lpenv/cutoff values), and getD3Data()
+    // gives me a rolling buffer for the D3 graph. So now the graph reacts
+    // to real musical events instead of fake math
     console_monkey_patch();
 
     // show events up to 2 seconds before the current beat and 2 seconds after
@@ -97,8 +115,15 @@ export default function StrudelDemo() {
       root: document.getElementById("editor"), // mounted in bottom card
       drawTime,
 
-      // D3-based bar graph driven by the console-monkey-patch data.
-      // x-axis: index 0..99, y-axis: lpenv (or cutoff as fallback).
+      // D3-based bar graph driven by the console-monkey-patch data
+      // x-axis: index 0..99, y-axis: lpenv (or cutoff as fallback)
+      //
+      // onDraw is called repeatedly by Strudel while the pattern is running
+      // Here I build the bar chart:
+      //   - X axis  = index in the log buffer (0 = oldest event, last = newest event)
+      //   - Y axis  = numeric lpenv/cutoff value for that event
+      // So the bars show “how strong / bright” each recent event is (height)
+      // and in which order they happened (left → right)
       onDraw: () => {
         const svg = d3.select("#visualiser");
         if (svg.empty()) return;
@@ -112,11 +137,15 @@ export default function StrudelDemo() {
         // current rolling array of log lines from console_monkey_patch
         const rawData = getD3Data();
         if (!rawData || rawData.length === 0) {
+          // nothing logged yet → clear the svg so old bars don’t hang around
           svg.selectAll("*").remove();
           return;
         }
 
         // parse each line and extract lpenv (or cutoff if lpenv missing)
+        // Each data point becomes { x: index, y: value }:
+        //   x = 0..N-1, older events on the left, newest on the right
+        //   y = parsed lpenv / cutoff number (this drives bar height)
         const parsed = rawData.map((line, i) => {
           const match =
             /lpenv:([0-9.]+)/.exec(line) || /cutoff:([0-9.]+)/.exec(line);
@@ -160,6 +189,9 @@ export default function StrudelDemo() {
           .attr("stop-opacity", 1.0);
 
         // x: index of log entry (0..99)
+        //    This is my horizontal axis. It doesn’t use real seconds,
+        //    but just the order of events in the buffer:
+        //    older events on the left, newer events on the right.
         const x = d3
           .scaleBand()
           .domain(parsed.map((d) => d.x))
@@ -167,6 +199,9 @@ export default function StrudelDemo() {
           .padding(0.1);
 
         // y: lpenv / cutoff value
+        //    This is my vertical axis. Bigger lpenv/cutoff -> taller bar
+        //    I scale it so 0 is at the bottom and max is near the top
+        // Note that if the song code doesn't have any lpenv or cutoff value, the visualiser won't work
         const yMax = d3.max(parsed, (d) => d.y) || 1;
         const y = d3
           .scaleLinear()
@@ -187,6 +222,10 @@ export default function StrudelDemo() {
         g.append("g").call(yAxis).attr("color", "#aaa");
 
         // bars: height is based on the parsed lpenv/cutoff
+        // Each <rect> is one event from the log:
+        //   - x position = its index on X axis
+        //   - height     = its lpenv/cutoff value mapped through Y scale
+        //   - fill       = my blue→pink gradient
         g.selectAll(".bar")
           .data(parsed)
           .join("rect")
@@ -224,6 +263,7 @@ export default function StrudelDemo() {
   }, []); // run once – hasRun + this empty dependency keeps the setup stable
 
   // ---- JSON Save / Load handlers ----
+  // Build a small plain JS object from my React state and hand it to saveSettings().
   const handleSaveSettings = () => {
     const settings = {
       p1Hush,
@@ -234,6 +274,7 @@ export default function StrudelDemo() {
     saveSettings(settings);
   };
 
+  // Try to restore any saved settings from localStorage via loadSettings().
   const handleLoadSettings = () => {
     const loaded = loadSettings();
     if (!loaded) return;
@@ -250,6 +291,8 @@ export default function StrudelDemo() {
     }
   };
 
+  // When tempo slider moves, update state and, if we are already playing,
+  // re-run the pattern with the new tempo
   const handleTempoChange = (newTempo) => {
     setTempo(newTempo);
 
@@ -258,6 +301,8 @@ export default function StrudelDemo() {
     }
   };
 
+  // When volume slider moves, update state + mute flag and,
+  // if playing, re-run the pattern with the new volume
   const handleVolumeChange = (newVolume) => {
     setVolume(newVolume);
 
@@ -274,7 +319,9 @@ export default function StrudelDemo() {
     }
   };
 
-
+  // This handles the mute button logic:
+  // - Unmuted -> Muted: remember last non-zero volume, set volume=0 and re-run if needed
+  // - Muted   -> Unmuted: restore lastVolume (or 1.0) and re-run if needed
   const handleToggleMute = () => {
     if (!isMuted) {
       // going from unmuted -> muted
@@ -298,9 +345,8 @@ export default function StrudelDemo() {
     }
   };
 
-
   // ---- Manual handlers ----
-  // This function applies my custom preprocess function to the template text.
+  // This function applies my custom preprocess function to the template text
   const handlePreprocess = () => {
     // pass in the whole state so preprocess can decide what to change.
     const next = preprocess(template, { p1Hush, tempo, volume });
@@ -314,8 +360,7 @@ export default function StrudelDemo() {
     runWithState(); // uses current tempo + volume
   };
 
-
-  // Plays whatever code is currently inside the Strudel editor.
+  // Plays whatever code is currently inside the Strudel editor
   const handlePlay = () => {
     if (globalEditor) {
       globalEditor.evaluate();
@@ -323,8 +368,7 @@ export default function StrudelDemo() {
     }
   };
 
-
-  // Stop the current playback.
+  // Stop the current playback
   const handleStop = () => {
     if (globalEditor) {
       globalEditor.stop();
@@ -341,7 +385,6 @@ export default function StrudelDemo() {
           Instruction
         </Link>
       </header>
-
 
       <div className="container-fluid app-main py-4 app-container">
         <div className="row gx-3 gy-4 align-items-start">
@@ -490,7 +533,6 @@ export default function StrudelDemo() {
               </div>
             </div>
           </aside>
-
 
           {/* RIGHT MAIN AREA */}
           <section className="col-lg-9 col-xl-9">

@@ -1,4 +1,5 @@
 // src/components/HeaderBar.js
+// Small control bar that just shows the 4 main buttons and calls the matching callbacks from App when user click them
 export default function HeaderBar({ onPreprocess, onProcPlay, onPlay, onStop }) {
   return (
     <nav className="mb-3">
